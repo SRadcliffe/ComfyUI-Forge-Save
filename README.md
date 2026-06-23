@@ -1,8 +1,8 @@
 # ComfyUI Forge Save
 
-Production-focused save nodes for ComfyUI with structured image and video output, automatic versioning, preview generation, and organised project folders.
+Production-focused save nodes for ComfyUI with structured image and video output, automatic versioning, contact sheet generation, preview generation, and organised project folders.
 
-Forge Save is designed for creators, studios, and production teams who need predictable output structures instead of dumping every render into a single output directory.
+Forge Save is designed for creators, studios, and production teams who need predictable output paths instead of dumping every render into a single output directory.
 
 ---
 
@@ -11,12 +11,13 @@ Forge Save is designed for creators, studios, and production teams who need pred
 * Save images to PNG, JPG, or WEBP
 * Save videos to MP4, WEBM, or GIF
 * Automatic version numbering
-* Organised project-based folder structure
+* Clean project-based folder structure
+* Optional contact sheet generation
+* Smart preview behaviour for contact sheets
 * Preview image generation for videos
 * Open Image Folder button
 * Open Video Folder button
 * Shot-based naming system
-* Production-friendly output organisation
 * No manual version management required
 
 ---
@@ -25,13 +26,15 @@ Forge Save is designed for creators, studios, and production teams who need pred
 
 Forge Save adds two nodes:
 
-### Forge Save Image
+### Save Image
 
-Save generated images into organised project folders with automatic versioning.
+Saves generated images into organised project folders with automatic versioning.
 
-### Forge Save Video
+Optional contact sheet generation can be enabled directly on the image save node.
 
-Encode image frame batches into MP4, WEBM, or GIF files with optional preview images.
+### Save Video
+
+Encodes image frame batches into MP4, WEBM, or GIF files with optional preview images.
 
 Nodes appear under:
 
@@ -47,6 +50,10 @@ Forge Save
 
 ![Forge Save Image](assets/forge-save-image-node.png)
 
+### Contact Sheet Generation
+
+![Contact Sheet Generation](assets/forge-save-contact-sheet.png)
+
 ### Forge Save Video
 
 ![Forge Save Video](assets/forge-save-video-node.png)
@@ -60,11 +67,11 @@ Forge Save
 ```text
 ComfyUI/output/
 └── Demo_Project/
-    └── Shot_Development/
-        └── shots/
-            ├── shot_01_hero_render_v001.png
-            ├── shot_01_hero_render_v002.png
-            └── shot_01_hero_render_v003.png
+    └── Product_Shoot/
+        ├── shot_01_hero_render_v001.png
+        ├── shot_01_hero_render_v002.png
+        ├── shot_01_hero_render_v003.png
+        └── contact_sheet_shot_01_hero_render_v003.jpg
 ```
 
 ### Videos
@@ -72,13 +79,12 @@ ComfyUI/output/
 ```text
 ComfyUI/output/
 └── Demo_Project/
-    └── Shot_Development/
-        └── videos/
-            ├── shot_01_hero_animation_v001.mp4
-            └── _previews/
-                ├── preview_shot_01_hero_animation_v001_frame_001.png
-                ├── preview_shot_01_hero_animation_v001_frame_002.png
-                └── preview_shot_01_hero_animation_v001_frame_003.png
+    └── Product_Shoot/
+        ├── shot_01_hero_animation_v001.mp4
+        └── _previews/
+            ├── preview_shot_01_hero_animation_v001_frame_001.png
+            ├── preview_shot_01_hero_animation_v001_frame_002.png
+            └── preview_shot_01_hero_animation_v001_frame_003.png
 ```
 
 ---
@@ -109,7 +115,7 @@ This prevents accidental overwriting and keeps render history intact.
 
 ---
 
-## Forge Save Image
+## Save Image
 
 ### Inputs
 
@@ -121,28 +127,57 @@ shot_number
 shot_label
 image_format
 jpg_quality
+generate_contact_sheet
+contact_sheet_columns
 ```
 
 ### Example Settings
 
 ```text
 project_name: Demo_Project
-folder_name: Shot_Development
+folder_name: Product_Shoot
 shot_number: 1
 shot_label: hero_render
 image_format: png
 jpg_quality: 95
+generate_contact_sheet: true
+contact_sheet_columns: 4
 ```
 
 ### Example Output
 
 ```text
-ComfyUI/output/Demo_Project/Shot_Development/shots/shot_01_hero_render_v001.png
+ComfyUI/output/Demo_Project/Product_Shoot/shot_01_hero_render_v001.png
+ComfyUI/output/Demo_Project/Product_Shoot/contact_sheet_shot_01_hero_render_v001.jpg
 ```
 
 ---
 
-## Forge Save Video
+## Contact Sheet Generation
+
+Forge Save Image can automatically generate a contact sheet from the images being saved.
+
+When `generate_contact_sheet` is enabled, Forge Save will:
+
+* Save all generated images normally
+* Create a review contact sheet in the same project folder
+* Display only the contact sheet in the ComfyUI preview panel
+* Keep the original images available on disk
+
+When `generate_contact_sheet` is disabled, Forge Save displays the individual saved images as normal.
+
+This is useful for:
+
+* Client reviews
+* Comparing image variations
+* Product photography workflows
+* Fashion campaign selection
+* Batch generation review
+* AI art direction and selection
+
+---
+
+## Save Video
 
 ### Inputs
 
@@ -168,7 +203,7 @@ Connect it before your final video combine/output node.
 
 ```text
 project_name: Demo_Project
-folder_name: Shot_Development
+folder_name: Product_Shoot
 shot_number: 1
 shot_label: hero_animation
 fps: 30
@@ -180,24 +215,24 @@ preview_images: 3
 ### Example Output
 
 ```text
-ComfyUI/output/Demo_Project/Shot_Development/videos/shot_01_hero_animation_v001.mp4
+ComfyUI/output/Demo_Project/Product_Shoot/shot_01_hero_animation_v001.mp4
 ```
 
 Preview images:
 
 ```text
-ComfyUI/output/Demo_Project/Shot_Development/videos/_previews/
+ComfyUI/output/Demo_Project/Product_Shoot/_previews/
 ```
 
 ---
 
 ## Video Quality
 
-The quality slider ranges from:
+The video quality slider ranges from:
 
 ```text
 1  = Smaller file size
-10 = Highest quality
+10 = Higher quality
 ```
 
 Recommended values:
@@ -212,7 +247,7 @@ for most production workflows.
 
 ## Installation
 
-Clone the repository into your ComfyUI custom_nodes folder:
+Clone the repository into your ComfyUI `custom_nodes` folder:
 
 ```bash
 cd ComfyUI/custom_nodes
@@ -238,6 +273,8 @@ Install manually if required:
 pip install -r requirements.txt
 ```
 
+Depending on your ComfyUI setup, some of these may already be installed.
+
 ---
 
 ## Repository Structure
@@ -250,6 +287,7 @@ ComfyUI-ForgeSave/
 ├── requirements.txt
 ├── assets/
 │   ├── forge-save-image-node.png
+│   ├── forge-save-contact-sheet.png
 │   └── forge-save-video-node.png
 ├── nodes/
 │   ├── forge_save_image.py
@@ -269,7 +307,7 @@ Open Image Folder
 Open Video Folder
 ```
 
-These automatically open the correct output directory in your operating system.
+These automatically open the relevant output directory on the machine running ComfyUI.
 
 ---
 
@@ -284,6 +322,7 @@ These automatically open the correct output directory in your operating system.
 * Client projects
 * Shot-based production pipelines
 * Version-controlled render output
+* Contact sheet review workflows
 
 ---
 
@@ -291,10 +330,11 @@ These automatically open the correct output directory in your operating system.
 
 Planned additions:
 
-* Forge Contact Sheet
-* Forge Metadata Export
-* Forge Review Video
-* Forge Project Manager
+* Metadata export
+* Render manifest export
+* Review video generation
+* Project presets
+* Wider ForgeFlow production toolkit modules
 
 ---
 
