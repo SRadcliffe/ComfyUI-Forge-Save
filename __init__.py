@@ -51,21 +51,12 @@ if PromptServer is not None and web is not None:
                 "Folder",
             )
 
-            output_type = sanitize_filename(
-                data.get("output_type", "shots"),
-                "shots",
-            )
-
-            if output_type not in ["shots", "videos"]:
-                output_type = "shots"
-
             output_dir = get_comfy_output_dir()
 
             target_dir = os.path.join(
                 output_dir,
                 project_name,
                 folder_name,
-                output_type,
             )
 
             open_folder_in_os(target_dir)

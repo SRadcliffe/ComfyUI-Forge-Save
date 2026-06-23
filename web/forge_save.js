@@ -1,6 +1,6 @@
 import { app } from "../../../scripts/app.js";
 
-function getWidgetValue(node, widgetName, fallback = "") {
+function getWidgetValue(node, widgetName, fallback = null) {
     if (!node.widgets) {
         return fallback;
     }
@@ -14,64 +14,60 @@ function getWidgetValue(node, widgetName, fallback = "") {
     return widget.value ?? fallback;
 }
 
+function getProjectName(node) {
+    return (
+        getWidgetValue(node, "project_name", null) ??
+        getWidgetValue(node, "Project Name", null) ??
+        "ProjectName"
+    );
+}
+
+function getFolderName(node) {
+    return (
+        getWidgetValue(node, "folder_name", null) ??
+        getWidgetValue(node, "Folder Name", null) ??
+        "Scene_Or_Episode_Name"
+    );
+}
+
 function addOpenFolderButton(node, outputType) {
     const label =
         outputType === "videos"
             ? "Open Video Folder"
             : "Open Image Folder";
 
-    node.addWidget(
-        "button",
-        label,
-        "open",
-        async () => {
-            const projectName = getWidgetValue(
-                node,
-                "Project Name",
-                "ProjectName"
-            );
+    node.addWidget("button", label, "open", async () => {
+        const projectName = getProjectName(node);
+        const folderName = getFolderName(node);
 
-            const folderName = getWidgetValue(
-                node,
-                "Folder Name",
-                "Scene_Or_Episode_Name"
-            );
+        try {
+            const response = await fetch("/forge_save/open_output_folder", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    project_name: projectName,
+                    folder_name: folderName,
+                    output_type: outputType,
+                }),
+            });
 
-            try {
-                const response = await fetch(
-                    "/forge_save/open_output_folder",
-                    {
-                        method: "POST",
-                        headers: {
-                            "Content-Type": "application/json",
-                        },
-                        body: JSON.stringify({
-                            project_name: projectName,
-                            folder_name: folderName,
-                            output_type: outputType,
-                        }),
-                    }
-                );
+            const result = await response.json();
 
-                const result = await response.json();
-
-                if (!response.ok || !result.success) {
-                    const message = result.error || "Unknown error";
-                    console.error("[Forge Save]", message);
-                    alert(`Could not open output folder:\n${message}`);
-                    return;
-                }
-
-                console.log(
-                    "[Forge Save] Opened output folder:",
-                    result.path
-                );
-            } catch (error) {
-                console.error("[Forge Save]", error);
-                alert(`Could not open output folder:\n${error.message}`);
+            if (!response.ok || !result.success) {
+                const message = result.error || "Unknown error";
+                console.error("[Forge Save]", message);
+                alert(`Could not open output folder:\n${message}`);
+                return;
             }
+
+            console.log("[Forge Save] Opened output folder:", result.path);
+        } catch (error) {
+            console.error("[Forge Save]", error);
+            alert(`Could not open output folder:\n${error.message}`);
         }
-    );
+    });
 }
 
 app.registerExtension({
@@ -95,7 +91,7 @@ app.registerExtension({
             if (nodeData.name === "ForgeSaveVideo") {
                 addOpenFolderButton(this, "videos");
             } else {
-                addOpenFolderButton(this, "shots");
+                addOpenFolderButton(this, "images");
             }
         };
     },

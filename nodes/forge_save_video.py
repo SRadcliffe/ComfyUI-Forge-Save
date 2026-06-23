@@ -1,5 +1,8 @@
+import json
 import os
 import re
+from datetime import datetime
+
 import numpy as np
 from PIL import Image
 
@@ -69,6 +72,58 @@ def get_next_version(save_dir: str, shot_number: int, shot_label: str, extension
     return highest_version + 1
 
 
+def write_video_recipe_json(
+    recipe_path,
+    project_name,
+    folder_name,
+    shot_number,
+    shot_label,
+    version_number,
+    filename,
+    video_format,
+    fps,
+    quality,
+    frame_count,
+    width,
+    height,
+    preview_images,
+):
+    metadata = {
+        "forge_save": {
+            "tool": "ComfyUI Forge Save",
+            "node": "Save Video",
+            "recipe_version": "1.0",
+        },
+        "output": {
+            "project_name": project_name,
+            "folder_name": folder_name,
+            "shot_number": int(shot_number),
+            "shot_label": shot_label,
+            "version": int(version_number),
+            "file_name": filename,
+            "video_format": video_format,
+            "created": datetime.now().isoformat(timespec="seconds"),
+        },
+        "video_recipe": {
+            "fps": float(fps),
+            "quality": int(quality),
+            "frame_count": int(frame_count),
+            "width": int(width),
+            "height": int(height),
+            "preview_images": int(preview_images),
+        },
+        "notes": {
+            "reproduction_warning": (
+                "Video reproduction depends on matching source frames, frame order, "
+                "codec support, encoder behaviour, and local environment."
+            )
+        },
+    }
+
+    with open(recipe_path, "w", encoding="utf-8") as file:
+        json.dump(metadata, file, indent=4, ensure_ascii=False)
+
+
 class ForgeSaveVideo:
     def __init__(self):
         self.output_dir = get_comfy_output_dir()
@@ -86,6 +141,7 @@ class ForgeSaveVideo:
                 "video_format": (["mp4", "webm", "gif"], {"default": "mp4"}),
                 "quality": ("INT", {"default": 8, "min": 1, "max": 10, "step": 1}),
                 "preview_images": ("INT", {"default": 3, "min": 0, "max": 12, "step": 1}),
+                "video_recipe": (["Off", "On"], {"default": "Off"}),
             },
         }
 
@@ -105,6 +161,7 @@ class ForgeSaveVideo:
         video_format,
         quality,
         preview_images,
+        video_recipe,
     ):
         safe_project_name = sanitize_filename(project_name, "Project")
         safe_folder_name = sanitize_filename(folder_name, "Folder")
@@ -114,7 +171,6 @@ class ForgeSaveVideo:
             self.output_dir,
             safe_project_name,
             safe_folder_name,
-            "videos",
         )
 
         preview_dir = os.path.join(save_dir, "_previews")
@@ -153,10 +209,13 @@ class ForgeSaveVideo:
         if not frame_list:
             raise RuntimeError("Forge Save Video received no frames.")
 
+        frame_count = len(frame_list)
+        height, width = frame_list[0].shape[:2]
+
         preview_results = []
 
         preview_count = int(preview_images)
-        preview_count = max(0, min(preview_count, len(frame_list)))
+        preview_count = max(0, min(preview_count, frame_count))
 
         if preview_count > 0:
             if preview_count == 1:
@@ -164,7 +223,7 @@ class ForgeSaveVideo:
             else:
                 preview_indices = np.linspace(
                     0,
-                    len(frame_list) - 1,
+                    frame_count - 1,
                     preview_count,
                     dtype=int,
                 ).tolist()
@@ -172,7 +231,6 @@ class ForgeSaveVideo:
             relative_preview_subfolder = os.path.join(
                 safe_project_name,
                 safe_folder_name,
-                "videos",
                 "_previews",
             )
 
@@ -199,6 +257,27 @@ class ForgeSaveVideo:
                         "type": "output",
                     }
                 )
+
+        if video_recipe == "On":
+            recipe_filename = filename.rsplit(".", 1)[0] + ".json"
+            recipe_path = os.path.join(save_dir, recipe_filename)
+
+            write_video_recipe_json(
+                recipe_path=recipe_path,
+                project_name=safe_project_name,
+                folder_name=safe_folder_name,
+                shot_number=shot_number,
+                shot_label=safe_shot_label,
+                version_number=auto_version_number,
+                filename=filename,
+                video_format=video_format,
+                fps=fps,
+                quality=quality,
+                frame_count=frame_count,
+                width=width,
+                height=height,
+                preview_images=preview_count,
+            )
 
         if video_format == "gif":
             duration_ms = int(1000 / float(fps))
