@@ -1,24 +1,63 @@
 # ComfyUI Forge Save
 
-Production-focused save nodes for ComfyUI with structured image and video output, automatic versioning, contact sheet generation, preview generation, and organised project folders.
+Production-focused save nodes for ComfyUI featuring structured project folders, automatic versioning, contact sheet generation, image recipe export, preview generation, and production-friendly asset management.
 
-Forge Save is designed for creators, studios, and production teams who need predictable output paths instead of dumping every render into a single output directory.
+Forge Save helps artists, studios, and teams keep renders organised, reproducible, and easy to review.
 
 ---
 
 ## Features
 
-* Save images to PNG, JPG, or WEBP
-* Save videos to MP4, WEBM, or GIF
+* Save Image node
+* Save Video node
 * Automatic version numbering
-* Clean project-based folder structure
-* Optional contact sheet generation
-* Smart preview behaviour for contact sheets
-* Preview image generation for videos
-* Open Image Folder button
-* Open Video Folder button
-* Shot-based naming system
-* No manual version management required
+* Project-based folder organisation
+* Contact sheet generation
+* Image Recipe export
+* Open output folder buttons
+* PNG, JPG and WebP support
+* Batch image support
+* ComfyUI-native workflow
+
+---
+
+## Image Recipe Export
+
+Forge Save can generate a companion JSON file containing the key information required to help recreate an image.
+
+Enable **Image Recipe** in the Save Image node to automatically save a recipe file alongside each image.
+
+### Stored Information
+
+* Prompt
+* Negative Prompt (when available)
+* Seed
+* Steps
+* CFG
+* Sampler
+* Scheduler
+* Denoise
+* Model
+* CLIP
+* VAE
+* Width
+* Height
+* Batch Size
+
+### Example Output
+
+```text
+ProjectName/
+└── Product_Shoot/
+    ├── shot_01_watch_front_v001.png
+    └── shot_01_watch_front_v001.json
+```
+
+### Why Use Image Recipes?
+
+Image Recipes provide a lightweight way to share generation settings between artists, archive important renders, and help reproduce images without needing to inspect a full ComfyUI workflow.
+
+For complete workflow portability, users can still embed workflow metadata directly into saved images using ComfyUI's native workflow embedding features.
 
 ---
 
@@ -53,6 +92,12 @@ Forge Save
 ### Contact Sheet Generation
 
 ![Contact Sheet Generation](assets/forge-save-contact-sheet.png)
+
+### Image Recipe Export
+
+![Forge Save Image Recipe](assets/forge-save-image-recipe.png)
+
+Generate lightweight JSON recipe files containing the key settings required to help recreate an image.
 
 ### Forge Save Video
 
@@ -127,8 +172,9 @@ shot_number
 shot_label
 image_format
 jpg_quality
-generate_contact_sheet
-contact_sheet_columns
+contact_sheet
+sheet_columns
+image_recipe
 ```
 
 ### Example Settings
@@ -140,8 +186,9 @@ shot_number: 1
 shot_label: hero_render
 image_format: png
 jpg_quality: 95
-generate_contact_sheet: true
-contact_sheet_columns: 4
+contact_sheet: true
+sheet_columns: 4
+image_recipe: On
 ```
 
 ### Example Output
@@ -149,6 +196,7 @@ contact_sheet_columns: 4
 ```text
 ComfyUI/output/Demo_Project/Product_Shoot/shot_01_hero_render_v001.png
 ComfyUI/output/Demo_Project/Product_Shoot/contact_sheet_shot_01_hero_render_v001.jpg
+ComfyUI/output/Demo_Project/Product_Shoot/shot_01_hero_render_v001.json
 ```
 
 ---
@@ -157,14 +205,14 @@ ComfyUI/output/Demo_Project/Product_Shoot/contact_sheet_shot_01_hero_render_v001
 
 Forge Save Image can automatically generate a contact sheet from the images being saved.
 
-When `generate_contact_sheet` is enabled, Forge Save will:
+When `contact_sheet` is enabled, Forge Save will:
 
 * Save all generated images normally
 * Create a review contact sheet in the same project folder
 * Display only the contact sheet in the ComfyUI preview panel
 * Keep the original images available on disk
 
-When `generate_contact_sheet` is disabled, Forge Save displays the individual saved images as normal.
+When `contact_sheet` is disabled, Forge Save displays the individual saved images as normal.
 
 This is useful for:
 
@@ -250,7 +298,7 @@ for most production workflows.
 Clone the repository into your ComfyUI `custom_nodes` folder:
 
 ```bash
-cd ComfyUI/custom_nodes
+cd ComfyUI\custom_nodes
 git clone https://github.com/SRadcliffe/ComfyUI-Forge-Save.git
 ```
 
@@ -288,6 +336,7 @@ ComfyUI-ForgeSave/
 ├── assets/
 │   ├── forge-save-image-node.png
 │   ├── forge-save-contact-sheet.png
+│   ├── forge-save-image-recipe.png
 │   └── forge-save-video-node.png
 ├── nodes/
 │   ├── forge_save_image.py
@@ -330,10 +379,10 @@ These automatically open the relevant output directory on the machine running Co
 
 Planned additions:
 
-* Metadata export
 * Render manifest export
-* Review video generation
 * Project presets
+* Review video generation
+* Metadata browser
 * Wider ForgeFlow production toolkit modules
 
 ---

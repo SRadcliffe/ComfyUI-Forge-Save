@@ -1,6 +1,9 @@
+import json
 import math
 import os
 import re
+from datetime import datetime
+
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 
@@ -62,12 +65,142 @@ def get_next_version(save_dir: str, shot_number: int, shot_label: str, extension
         match = pattern.match(filename)
         if match:
             try:
-                found_version = int(match.group(1))
-                highest_version = max(highest_version, found_version)
+                highest_version = max(highest_version, int(match.group(1)))
             except ValueError:
                 pass
 
     return highest_version + 1
+
+
+def find_first_node_by_class(prompt, class_type):
+    if not isinstance(prompt, dict):
+        return None
+
+    for node in prompt.values():
+        if isinstance(node, dict) and node.get("class_type") == class_type:
+            return node
+
+    return None
+
+
+def find_nodes_by_class(prompt, class_type):
+    if not isinstance(prompt, dict):
+        return []
+
+    return [
+        node for node in prompt.values()
+        if isinstance(node, dict) and node.get("class_type") == class_type
+    ]
+
+
+def extract_reproduction_summary(prompt=None):
+    summary = {
+        "prompt": None,
+        "negative_prompt": None,
+        "seed": None,
+        "steps": None,
+        "cfg": None,
+        "sampler": None,
+        "scheduler": None,
+        "denoise": None,
+        "model": None,
+        "clip": None,
+        "vae": None,
+        "width": None,
+        "height": None,
+        "batch_size": None,
+    }
+
+    if not isinstance(prompt, dict):
+        return summary
+
+    sampler_node = find_first_node_by_class(prompt, "KSampler")
+    if sampler_node:
+        inputs = sampler_node.get("inputs", {})
+        summary["seed"] = inputs.get("seed")
+        summary["steps"] = inputs.get("steps")
+        summary["cfg"] = inputs.get("cfg")
+        summary["sampler"] = inputs.get("sampler_name")
+        summary["scheduler"] = inputs.get("scheduler")
+        summary["denoise"] = inputs.get("denoise")
+
+    text_nodes = find_nodes_by_class(prompt, "CLIPTextEncode")
+    if text_nodes:
+        summary["prompt"] = text_nodes[0].get("inputs", {}).get("text")
+
+        if len(text_nodes) > 1:
+            summary["negative_prompt"] = text_nodes[1].get("inputs", {}).get("text")
+
+    unet_node = find_first_node_by_class(prompt, "UNETLoader")
+    if unet_node:
+        summary["model"] = unet_node.get("inputs", {}).get("unet_name")
+
+    clip_node = find_first_node_by_class(prompt, "CLIPLoader")
+    if clip_node:
+        summary["clip"] = clip_node.get("inputs", {}).get("clip_name")
+
+    vae_node = find_first_node_by_class(prompt, "VAELoader")
+    if vae_node:
+        summary["vae"] = vae_node.get("inputs", {}).get("vae_name")
+
+    latent_node = (
+        find_first_node_by_class(prompt, "EmptySD3LatentImage")
+        or find_first_node_by_class(prompt, "EmptyLatentImage")
+    )
+
+    if latent_node:
+        inputs = latent_node.get("inputs", {})
+        summary["width"] = inputs.get("width")
+        summary["height"] = inputs.get("height")
+        summary["batch_size"] = inputs.get("batch_size")
+
+    return summary
+
+
+def write_image_recipe_json(
+    metadata_path,
+    project_name,
+    folder_name,
+    shot_number,
+    shot_label,
+    version_number,
+    filename,
+    image_format,
+    jpg_quality,
+    batch_index,
+    batch_count,
+    prompt=None,
+):
+    metadata = {
+        "forge_save": {
+            "tool": "ComfyUI Forge Save",
+            "node": "Save Image",
+            "metadata_version": "1.0",
+        },
+        "output": {
+            "project_name": project_name,
+            "folder_name": folder_name,
+            "shot_number": int(shot_number),
+            "shot_label": shot_label,
+            "version": int(version_number),
+            "file_name": filename,
+            "image_format": image_format,
+            "jpg_quality": int(jpg_quality),
+            "batch_index": int(batch_index),
+            "batch_count": int(batch_count),
+            "created": datetime.now().isoformat(timespec="seconds"),
+        },
+        "image_recipe": extract_reproduction_summary(prompt=prompt),
+        "notes": {
+            "reproduction_warning": (
+                "Exact 1:1 reproduction depends on matching models, LoRAs, "
+                "custom nodes, ComfyUI version, sampler behaviour, and local environment."
+            )
+        },
+    }
+
+    with open(metadata_path, "w", encoding="utf-8") as file:
+        json.dump(metadata, file, indent=4, ensure_ascii=False)
 
 
 def create_contact_sheet_image(
@@ -154,8 +287,12 @@ class ForgeSaveImage:
                 "shot_label": ("STRING", {"default": "location_label", "multiline": False}),
                 "image_format": (["png", "jpg", "webp"], {"default": "png"}),
                 "jpg_quality": ("INT", {"default": 95, "min": 1, "max": 100, "step": 1}),
-                "generate_contact_sheet": ("BOOLEAN", {"default": False}),
-                "contact_sheet_columns": ("INT", {"default": 4, "min": 1, "max": 12, "step": 1}),
+                "contact_sheet": ("BOOLEAN", {"default": False}),
+                "sheet_columns": ("INT", {"default": 4, "min": 1, "max": 12, "step": 1}),
+                "image_recipe": (["Off", "On"], {"default": "Off"}),
+            },
+            "hidden": {
+                "prompt": "PROMPT",
             },
         }
 
@@ -173,8 +310,10 @@ class ForgeSaveImage:
         shot_label,
         image_format,
         jpg_quality,
-        generate_contact_sheet,
-        contact_sheet_columns,
+        contact_sheet,
+        sheet_columns,
+        image_recipe,
+        prompt=None,
     ):
         safe_project_name = sanitize_filename(project_name, "Project")
         safe_folder_name = sanitize_filename(folder_name, "Folder")
@@ -197,12 +336,14 @@ class ForgeSaveImage:
 
         results = []
         saved_image_paths = []
+        relative_subfolder = os.path.join(safe_project_name, safe_folder_name)
+        batch_count = len(images)
 
         for batch_index, image_tensor in enumerate(images):
             pil_image = tensor_to_pil(image_tensor)
 
             batch_suffix = ""
-            if len(images) > 1:
+            if batch_count > 1:
                 batch_suffix = f"_{batch_index + 1:03d}"
 
             filename = (
@@ -242,10 +383,24 @@ class ForgeSaveImage:
 
             saved_image_paths.append(file_path)
 
-            relative_subfolder = os.path.join(
-                safe_project_name,
-                safe_folder_name,
-            )
+            if image_recipe == "On":
+                base_name = filename.rsplit(".", 1)[0]
+                metadata_path = os.path.join(save_dir, f"{base_name}.json")
+
+                write_image_recipe_json(
+                    metadata_path=metadata_path,
+                    project_name=safe_project_name,
+                    folder_name=safe_folder_name,
+                    shot_number=shot_number,
+                    shot_label=safe_shot_label,
+                    version_number=auto_version_number,
+                    filename=filename,
+                    image_format=image_format,
+                    jpg_quality=jpg_quality,
+                    batch_index=batch_index + 1,
+                    batch_count=batch_count,
+                    prompt=prompt,
+                )
 
             results.append(
                 {
@@ -255,7 +410,7 @@ class ForgeSaveImage:
                 }
             )
 
-        if generate_contact_sheet and saved_image_paths:
+        if contact_sheet and saved_image_paths:
             contact_sheet_filename = (
                 f"contact_sheet_"
                 f"shot_{shot_number:02d}_"
@@ -263,15 +418,12 @@ class ForgeSaveImage:
                 f"v{auto_version_number:03d}.jpg"
             )
 
-            contact_sheet_path = os.path.join(
-                save_dir,
-                contact_sheet_filename,
-            )
+            contact_sheet_path = os.path.join(save_dir, contact_sheet_filename)
 
             create_contact_sheet_image(
                 saved_image_paths=saved_image_paths,
                 output_path=contact_sheet_path,
-                columns=contact_sheet_columns,
+                columns=sheet_columns,
             )
 
             return {
@@ -286,8 +438,4 @@ class ForgeSaveImage:
                 }
             }
 
-        return {
-            "ui": {
-                "images": results
-            }
-        }
+        return {"ui": {"images": results}}

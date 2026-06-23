@@ -27,13 +27,13 @@ function addOpenFolderButton(node, outputType) {
         async () => {
             const projectName = getWidgetValue(
                 node,
-                "project_name",
+                "Project Name",
                 "ProjectName"
             );
 
             const folderName = getWidgetValue(
                 node,
-                "folder_name",
+                "Folder Name",
                 "Scene_Or_Episode_Name"
             );
 
