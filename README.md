@@ -1,21 +1,39 @@
-# ComfyUI ForgeSave
+# ComfyUI Forge Save
 
-**ComfyUI ForgeSave** is a small production-focused custom node pack for ComfyUI.
+Production-focused save nodes for ComfyUI with structured image and video output, automatic versioning, preview generation, and organised project folders.
 
-It adds clean, organised save nodes for image and video workflows, with automatic version numbering and a project-based folder structure.
+Forge Save is designed for creators, studios, and production teams who need predictable output structures instead of dumping every render into a single output directory.
 
-ForgeSave is designed for users who want predictable production output paths instead of dumping every render into one large output folder.
+---
+
+## Features
+
+* Save images to PNG, JPG, or WEBP
+* Save videos to MP4, WEBM, or GIF
+* Automatic version numbering
+* Organised project-based folder structure
+* Preview image generation for videos
+* Open Image Folder button
+* Open Video Folder button
+* Shot-based naming system
+* Production-friendly output organisation
+* No manual version management required
 
 ---
 
 ## Nodes
 
-ForgeSave adds two nodes:
+Forge Save adds two nodes:
 
-- **Save Image**
-- **Save Video**
+### Forge Save Image
 
-They appear in ComfyUI under:
+Save generated images into organised project folders with automatic versioning.
+
+### Forge Save Video
+
+Encode image frame batches into MP4, WEBM, or GIF files with optional preview images.
+
+Nodes appear under:
 
 ```text
 Forge Save
@@ -23,88 +41,75 @@ Forge Save
 
 ---
 
-## Output Structure
+## Screenshots
 
-ForgeSave saves files into a clean project/folder structure inside your ComfyUI output directory.
+### Forge Save Image
+
+![Forge Save Image](assets/forge-save-image-node.png)
+
+### Forge Save Video
+
+![Forge Save Video](assets/forge-save-video-node.png)
+
+---
+
+## Example Output Structure
 
 ### Images
 
 ```text
 ComfyUI/output/
-└── ProjectName/
-    └── Scene_Or_Episode_Name/
+└── Demo_Project/
+    └── Shot_Development/
         └── shots/
-            └── shot_01_location_label_v001.png
-```
-
-Example:
-
-```text
-ComfyUI/output/
-└── BadlyRunByAnimals/
-    └── EP002_Seagull_And_Sons_Fish_Bar/
-        └── shots/
-            └── shot_01_exterior_fish_bar_v001.png
+            ├── shot_01_hero_render_v001.png
+            ├── shot_01_hero_render_v002.png
+            └── shot_01_hero_render_v003.png
 ```
 
 ### Videos
 
 ```text
 ComfyUI/output/
-└── ProjectName/
-    └── Scene_Or_Episode_Name/
+└── Demo_Project/
+    └── Shot_Development/
         └── videos/
-            ├── shot_01_location_label_v001.mp4
+            ├── shot_01_hero_animation_v001.mp4
             └── _previews/
-                ├── preview_shot_01_location_label_v001_frame_001.png
-                ├── preview_shot_01_location_label_v001_frame_002.png
-                └── preview_shot_01_location_label_v001_frame_003.png
+                ├── preview_shot_01_hero_animation_v001_frame_001.png
+                ├── preview_shot_01_hero_animation_v001_frame_002.png
+                └── preview_shot_01_hero_animation_v001_frame_003.png
 ```
 
 ---
 
-## Features
+## Automatic Versioning
 
-- Organised project-based save structure
-- Automatic version numbering
-- Separate folders for images and videos
-- Image saving to PNG, JPG, or WEBP
-- Video saving to MP4, WEBM, or GIF
-- Preview images for video outputs
-- Open Image Folder button
-- Open Video Folder button
-- No manual version number input required
-- Useful for production, batch renders, client work, episode workflows, shot-based workflows, and AI video pipelines
+Forge Save automatically checks the output directory and increments the version number.
 
----
-
-## Auto Versioning
-
-ForgeSave automatically checks the output folder and increments the version number.
-
-For example, if this file already exists:
+If this file already exists:
 
 ```text
-shot_01_location_label_v001.png
+shot_01_hero_render_v001.png
 ```
 
-The next generation will save as:
+The next render becomes:
 
 ```text
-shot_01_location_label_v002.png
+shot_01_hero_render_v002.png
 ```
 
 Then:
 
 ```text
-shot_01_location_label_v003.png
+shot_01_hero_render_v003.png
 ```
 
-This prevents accidental overwriting and keeps render history clean.
+This prevents accidental overwriting and keeps render history intact.
 
 ---
 
-## Save Image Node
+## Forge Save Image
 
 ### Inputs
 
@@ -121,10 +126,10 @@ jpg_quality
 ### Example Settings
 
 ```text
-project_name: BadlyRunByAnimals
-folder_name: EP002_Seagull_And_Sons_Fish_Bar
+project_name: Demo_Project
+folder_name: Shot_Development
 shot_number: 1
-shot_label: exterior_fish_bar
+shot_label: hero_render
 image_format: png
 jpg_quality: 95
 ```
@@ -132,12 +137,12 @@ jpg_quality: 95
 ### Example Output
 
 ```text
-ComfyUI/output/BadlyRunByAnimals/EP002_Seagull_And_Sons_Fish_Bar/shots/shot_01_exterior_fish_bar_v001.png
+ComfyUI/output/Demo_Project/Shot_Development/shots/shot_01_hero_render_v001.png
 ```
 
 ---
 
-## Save Video Node
+## Forge Save Video
 
 ### Inputs
 
@@ -155,19 +160,17 @@ preview_images
 
 ### Important
 
-**Save Video expects an IMAGE frame batch, not a VIDEO object.**
+Forge Save Video expects an IMAGE frame batch, not a VIDEO object.
 
 Connect it before your final video combine/output node.
-
-In other words, connect the node to the frames/images that make up the animation, not to an already encoded MP4/video output.
 
 ### Example Settings
 
 ```text
-project_name: BadlyRunByAnimals
-folder_name: EP002_Seagull_And_Sons_Fish_Bar
+project_name: Demo_Project
+folder_name: Shot_Development
 shot_number: 1
-shot_label: exterior_fish_bar
+shot_label: hero_animation
 fps: 30
 video_format: mp4
 quality: 8
@@ -177,46 +180,50 @@ preview_images: 3
 ### Example Output
 
 ```text
-ComfyUI/output/BadlyRunByAnimals/EP002_Seagull_And_Sons_Fish_Bar/videos/shot_01_exterior_fish_bar_v001.mp4
+ComfyUI/output/Demo_Project/Shot_Development/videos/shot_01_hero_animation_v001.mp4
 ```
 
-Preview images are saved here:
+Preview images:
 
 ```text
-ComfyUI/output/BadlyRunByAnimals/EP002_Seagull_And_Sons_Fish_Bar/videos/_previews/
+ComfyUI/output/Demo_Project/Shot_Development/videos/_previews/
 ```
 
 ---
 
 ## Video Quality
 
-The video node uses a simple `quality` value from 1 to 10.
+The quality slider ranges from:
 
 ```text
-1  = smaller file, lower quality
-10 = larger file, higher quality
+1  = Smaller file size
+10 = Highest quality
 ```
 
-For most workflows, a value between `8` and `10` is recommended.
+Recommended values:
+
+```text
+8–10
+```
+
+for most production workflows.
 
 ---
 
 ## Installation
 
-Clone or download this repository into your ComfyUI custom nodes folder.
+Clone the repository into your ComfyUI custom_nodes folder:
 
 ```bash
 cd ComfyUI/custom_nodes
-git clone https://github.com/YOUR_USERNAME/ComfyUI-ForgeSave.git
+git clone https://github.com/SRadcliffe/ComfyUI-Forge-Save.git
 ```
 
-Then restart ComfyUI.
+Restart ComfyUI.
 
 ---
 
 ## Requirements
-
-ForgeSave uses:
 
 ```text
 numpy
@@ -225,19 +232,15 @@ imageio
 imageio-ffmpeg
 ```
 
-Install requirements with:
+Install manually if required:
 
 ```bash
 pip install -r requirements.txt
 ```
 
-Depending on your ComfyUI setup, some of these may already be installed.
-
 ---
 
-## Recommended Folder Structure
-
-The repository should look like this:
+## Repository Structure
 
 ```text
 ComfyUI-ForgeSave/
@@ -245,18 +248,12 @@ ComfyUI-ForgeSave/
 ├── README.md
 ├── LICENSE
 ├── requirements.txt
-└── web/
-    └── forge_save.js
-```
-
-Installed inside ComfyUI, it should look like this:
-
-```text
-ComfyUI/custom_nodes/ComfyUI-ForgeSave/
-├── __init__.py
-├── README.md
-├── LICENSE
-├── requirements.txt
+├── assets/
+│   ├── forge-save-image-node.png
+│   └── forge-save-video-node.png
+├── nodes/
+│   ├── forge_save_image.py
+│   └── forge_save_video.py
 └── web/
     └── forge_save.js
 ```
@@ -265,55 +262,58 @@ ComfyUI/custom_nodes/ComfyUI-ForgeSave/
 
 ## Open Folder Buttons
 
-ForgeSave includes frontend buttons for quickly opening output folders.
-
-The image node includes:
+Both nodes include quick-access buttons:
 
 ```text
 Open Image Folder
-```
-
-The video node includes:
-
-```text
 Open Video Folder
 ```
 
-These buttons open the relevant output folder on the machine running ComfyUI.
+These automatically open the correct output directory in your operating system.
 
 ---
 
-## Example Workflow Use Cases
+## Typical Use Cases
 
-ForgeSave is useful for:
-
-- AI video production
-- Batch image generation
-- Shot-based workflows
-- Episode-based workflows
-- Client-facing production renders
-- Versioned render output
-- Organised ComfyUI project folders
-- Archviz, product, automotive, social video, and creative production pipelines
+* AI image generation
+* AI video production
+* Product visualisation
+* Automotive workflows
+* Architectural visualisation
+* Batch rendering
+* Client projects
+* Shot-based production pipelines
+* Version-controlled render output
 
 ---
 
-## Notes
+## Roadmap
 
-The video node does not copy an existing encoded video file.
+Planned additions:
 
-It encodes an IMAGE frame batch into a new video file.
+* Forge Contact Sheet
+* Forge Metadata Export
+* Forge Review Video
+* Forge Project Manager
 
-If your workflow outputs a `VIDEO` object and not an image frame batch, connect ForgeSave before the final video output/combine node.
+---
+
+## Support
+
+If Forge Save helps your workflow, support future development:
+
+https://buymeacoffee.com/sradcliffe
 
 ---
 
 ## License
 
-MIT License.
+MIT License
 
 ---
 
 ## Author
 
-Created by **ForgeWorks Studio**.
+Created by ForgeWorks Studio
+
+Simon Radcliffe
